@@ -1,0 +1,21 @@
+project:
+  name:
+  structure:
+    notes: {}
+
+    recon:
+      nmap: {}
+      web: {}
+      other: {}
+
+    exploits: {}
+
+    payloads: {}
+
+    loot:
+      creds: {}
+      files: {}
+      screenshots: {}
+
+    solutions:
+      screenshots: {}
