@@ -3,8 +3,6 @@ import os
 import yaml
 import subprocess
 
-# A Test commit
-
 # Function to generate the environment
 def generate_environment(name, targetIP, nofolders, nmapscan, dirscan):
     base_path='.'
