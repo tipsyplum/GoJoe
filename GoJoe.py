@@ -1,6 +1,7 @@
 import argparse
 import os
 import yaml
+import subprocess
 
 # A Test commit
 
@@ -10,7 +11,7 @@ def generate_environment(name, targetIP, nofolders, nmapscan, dirscan):
     print(os.path.abspath(base_path))
     update_hosts_file(targetIP)
     create_folders(nofolders, name)
-    initial_nmap_scan(nmapscan)
+    initial_nmap_scan(nmapscan, targetIP)
     initial_directory_scan(dirscan)
 
 # Setup argparse for command-line arguments
@@ -126,9 +127,20 @@ def create_folders(nofolders, name):
         print(f"[+] Folder structure for '{project_name}' created successfully.")
 
 # Function for doing an initial nmap scan on the target
-def initial_nmap_scan(nmapscan):
+def initial_nmap_scan(nmapscan, targetIP):
     if(nmapscan):
         print("[+] Performing initial NMAP scan of the target")
+        # ping_command = ["ping", "-c", "4", targetIP]
+        nmap_command = ["nmap", "-sC", "-sV", targetIP]
+        try:
+            result = subprocess.run(nmap_command, capture_output=True, text=True, check=True)
+            print(result.stdout)
+        except subprocess.CalledProcessError as e:
+            print(f"Error executing Nmap: {e}")
+            print(f"Stderr: {e.stderr}")
+        except FileNotFoundError:
+            print("Nmap executable not found. Please ensure Nmap is installed and in your system's PATH.")
+
 
 # Function for doing initial web directory scan on the target
 def initial_directory_scan(dirscan):
