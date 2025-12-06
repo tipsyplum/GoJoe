@@ -11,7 +11,7 @@ def generate_environment(name, targetIP, nofolders, nmapscan, dirscan):
     print(os.path.abspath(base_path))
     update_hosts_file(targetIP)
     create_folders(nofolders, name)
-    initial_nmap_scan(nmapscan, targetIP)
+    initial_nmap_scan(nmapscan, targetIP, name)
     initial_directory_scan(dirscan)
 
 # Setup argparse for command-line arguments
@@ -127,14 +127,34 @@ def create_folders(nofolders, name):
         print(f"[+] Folder structure for '{project_name}' created successfully.")
 
 # Function for doing an initial nmap scan on the target.
-def initial_nmap_scan(nmapscan, targetIP):
+def initial_nmap_scan(nmapscan, targetIP, name):
+    targetIP = str(targetIP)
+    name = str(name)
+    dirStructureExists = False
+
     if(nmapscan):
         print("[+] Performing initial NMAP scan of the target")
-        # ping_command = ["ping", "-c", "4", targetIP]
+
         nmap_command = ["nmap", "-sC", "-sV", targetIP]
+        
+        # This should exist if folder structure was created using this tool.
+        output_dir = os.path.join(os.getcwd(), name, "recon", "nmap")
+        output_file = os.path.join(output_dir, "initial_scan.txt")
+
+        # Check if file structure is in place.  If it is save the output into the recon folder.  If it doesnt exist output will be saved into current working directory.
+        if os.path.isdir(output_dir):
+            dirStructureExists = True
+            nmap_command.extend(["-oN", output_file])
+        else:
+            nmap_command.extend(["-oN", "initial.txt"])
+
         try:
             result = subprocess.run(nmap_command, capture_output=True, text=True, check=True)
-            print(result.stdout)
+            #print(result.stdout)
+            if(dirStructureExists):
+                print("[+] Nmap has completed results saved to " + output_file)
+            else:
+                print("[+] Nmap has completed results saved to initial_scan.txt")
         except subprocess.CalledProcessError as e:
             print(f"Error executing Nmap: {e}")
             print(f"Stderr: {e.stderr}")
