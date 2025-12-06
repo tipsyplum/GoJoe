@@ -2,6 +2,8 @@ import argparse
 import os
 import yaml
 import subprocess
+import ipaddress
+import re
 
 # Function to generate the environment
 def generate_environment(name, targetIP, nofolders, nmapscan, dirscan):
@@ -16,15 +18,15 @@ def generate_environment(name, targetIP, nofolders, nmapscan, dirscan):
 def create_parser():
     parser = argparse.ArgumentParser(description="CTF Environment Generator")
     
-    parser.add_argument('targetIP', type=str, help="IP address of the CTF Server")
-    parser.add_argument('name', type=str, help="Name of the CTF Challenge")
+    parser.add_argument('targetIP', type=validate_ip_address, help="IP address of the CTF Target")
+    parser.add_argument('name', type=validate_name, help="Name of the CTF Challenge")
     parser.add_argument('--no-folders', action='store_true', help="Disable creation of file structure")
-    parser.add_argument('-ns', '--nmapscan', action='store_true', help="Do an initial NMAP scan of the target")
-    parser.add_argument('-ds', '--directoryscan', action='store_true', help="Perform an initial directory scan on the target")
+    parser.add_argument('-nmap', '--nmapscan', action='store_true', help="Do an initial NMAP scan of the target")
+    parser.add_argument('-dir', '--directoryscan', action='store_true', help="Perform an initial directory scan on the target")
 
     return parser
 
-# Function for updating /etc/host file with the target IP address
+# Function for updating /etc/host file with the target IP address.
 def update_hosts_file(targetIP):
     hosts_path = os.path.expanduser("~/Dev/GoJoe/hosts")
     #hosts_path = os.path.expanduser("/etc/hosts")
@@ -124,7 +126,7 @@ def create_folders(nofolders, name):
 
         print(f"[+] Folder structure for '{project_name}' created successfully.")
 
-# Function for doing an initial nmap scan on the target
+# Function for doing an initial nmap scan on the target.
 def initial_nmap_scan(nmapscan, targetIP):
     if(nmapscan):
         print("[+] Performing initial NMAP scan of the target")
@@ -139,11 +141,31 @@ def initial_nmap_scan(nmapscan, targetIP):
         except FileNotFoundError:
             print("Nmap executable not found. Please ensure Nmap is installed and in your system's PATH.")
 
-
-# Function for doing initial web directory scan on the target
+# Function for doing initial web directory scan on the target.
 def initial_directory_scan(dirscan):
     if(dirscan):
         print("[+] Performing initial directory scan of target")
+
+# Function for validating the IP address that users will input.
+def validate_ip_address(ipString):
+    try:
+        # Tries to create an IP address object (supports both IPv4 and IPv6)
+        ip_obj = ipaddress.ip_address(ipString)
+        return ip_obj
+    except ValueError:
+        # Catches the error and re-raises as an ArgumentTypeError for argparse
+        raise argparse.ArgumentTypeError(f"'{ipString}' is not a valid IP address")
+
+# Function for validating the name that users will input.
+def validate_name(nameString):
+    # Pattern to match only a-z, A-Z, 0-9, _, and space.
+    pattern = r'^[a-zA-Z0-9_ ]+$'
+
+    if not re.match(pattern, nameString):
+        raise argparse.ArgumentTypeError(
+            f"'{nameString}' is an invalid value. Must contain only alphanumeric characters (a-z, A-Z, 0-9), letters, or underscores."
+        )
+    return nameString
 
 def main():
     # Create the parser and parse the arguments
