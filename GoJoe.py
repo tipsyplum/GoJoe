@@ -4,15 +4,16 @@ import yaml
 import subprocess
 import ipaddress
 import re
+import sys
 
 # Function to generate the environment
-def generate_environment(name, targetIP, nofolders, nmapscan, dirscan):
+def generate_environment(name, targetIP, nofolders, nmapscan):
     base_path='.'
     print(os.path.abspath(base_path))
     update_hosts_file(targetIP)
     create_folders(nofolders, name)
     initial_nmap_scan(nmapscan, targetIP, name)
-    initial_directory_scan(dirscan)
+    #initial_directory_scan(dirscan)
 
 # Setup argparse for command-line arguments
 def create_parser():
@@ -22,79 +23,20 @@ def create_parser():
     parser.add_argument('name', type=validate_name, help="Name of the CTF Challenge")
     parser.add_argument('--no-folders', action='store_true', help="Disable creation of file structure")
     parser.add_argument('-nmap', '--nmapscan', action='store_true', help="Do an initial NMAP scan of the target")
-    parser.add_argument('-dir', '--directoryscan', action='store_true', help="Perform an initial directory scan on the target")
+    #parser.add_argument('-dir', '--directoryscan', action='store_true', help="Perform an initial directory scan on the target")
 
     return parser
 
 # Function for updating /etc/host file with the target IP address.
 def update_hosts_file(targetIP):
-    hosts_path = os.path.expanduser("~/Dev/GoJoe/hosts")
-    #hosts_path = os.path.expanduser("/etc/hosts")
-    marker = "#CTF Hosts"
-    target_hostname = "Target"
+    targetIP = str(targetIP)
 
     try:
-        # Read current hosts file
-        with open(hosts_path, "r") as file:
-            lines = file.readlines()
-
-        new_lines = []
-        marker_found = False
-        target_updated = False
-
-        # First pass: check for marker and update Target if present
-        i = 0
-        while i < len(lines):
-            line = lines[i]
-            stripped = line.strip()
-
-            # Check for the marker
-            if stripped == marker:
-                marker_found = True
-                new_lines.append(line)  # keep the marker line
-
-                # Look ahead for Target entry
-                if i + 1 < len(lines):
-                    next_line = lines[i + 1].strip()
-                    parts = next_line.split()
-
-                    # If next line is a Target entry → update it
-                    if len(parts) >= 2 and parts[1] == target_hostname:
-                        new_lines.append(f"{targetIP}\t{target_hostname}\n")
-                        target_updated = True
-                        i += 2
-                        continue
-
-                # Target not found under marker → insert new entry
-                if not target_updated:
-                    new_lines.append(f"{targetIP}\t{target_hostname}\n")
-                    target_updated = True
-
-                i += 1
-                continue
-
-            # Otherwise, keep the line
-            new_lines.append(line)
-            i += 1
-
-        # If marker not found → append marker + entry at end
-        if not marker_found:
-            new_lines.append("\n" + marker + "\n")
-            new_lines.append(f"{targetIP}\t{target_hostname}\n")
-
-        # Write back to the hosts file
-        with open(hosts_path, "w") as file:
-            file.writelines(new_lines)
-
-        if target_updated:
-            print(f"[+] Updated Target host entry → {targetIP}")
-        else:
-            print(f"[+] Added Target host entry → {targetIP}")
-
-    except PermissionError:
-        print("[-] Permission denied: Run this script with sudo.")
-    except Exception as e:
-        print(f"[-] Error updating /etc/hosts: {e}")
+        print("[*] Updating /etc/hosts (requires sudo)...")
+        cmd = ["sudo", sys.executable, "update_hosts_helper.py", targetIP]
+        subprocess.run(cmd, check=True)
+    except subprocess.CalledProcessError:
+        print("[-] Failed to update /etc/hosts. Did you enter your sudo password?")
 
 # Function for creating folder structure within the current directory. The folder structure is based on the YAML file filestructure.yaml.
 def create_folders(nofolders, name):
@@ -133,7 +75,7 @@ def initial_nmap_scan(nmapscan, targetIP, name):
     dirStructureExists = False
 
     if(nmapscan):
-        print("[+] Performing initial NMAP scan of the target")
+        print("[+] Performing initial NMAP scan of " + targetIP + ".")
 
         nmap_command = ["nmap", "-sC", "-sV", targetIP]
         
@@ -154,7 +96,7 @@ def initial_nmap_scan(nmapscan, targetIP, name):
             if(dirStructureExists):
                 print("[+] Nmap has completed results saved to " + output_file)
             else:
-                print("[+] Nmap has completed results saved to initial_scan.txt")
+                print("[+] Nmap has completed results saved to initial_scan.txt.")
         except subprocess.CalledProcessError as e:
             print(f"Error executing Nmap: {e}")
             print(f"Stderr: {e.stderr}")
@@ -197,8 +139,8 @@ def main():
         name=args.name,
         targetIP=args.targetIP,
         nofolders=args.no_folders,
-        nmapscan=args.nmapscan,
-        dirscan=args.directoryscan
+        nmapscan=args.nmapscan
+        #dirscan=args.directoryscan
         )
 
 if __name__ == '__main__':
